@@ -13,17 +13,15 @@ The class incorporates its own (limited) character set, accessed through the fol
 
 ## Release Notes
 
-### 1.2.0
+- 1.2.0
+    - Add *writeGlyph()* method to replace *writeChar()* to avoid confusion over method’s role
+        - *writeChar()* still included so old code will not break
+    - Add *setDisplayFlash()*
+    - *setBrightness()* code simplified; code that belongs in *init()* placed in that method
+    - *init()* returns *this*
 
-- Add *writeGlyph()* method to replace *writeChar()* to avoid confusion over method’s role
-    - *writeChar()* still included so old code will not break
-- Add *setDisplayFlash()*
-- *setBrightness()* code simplified; code that belongs in *init()* placed in that method
-- *init()* returns *this*
-
-### 1.1.0
-
-From version 1.1.0, the methods *clearBuffer()*, *setColon()*, *writeChar()* and *writeNumber()* return the context object, *this*, allowing them to be chained:
+- 1.1.0
+    - From version 1.1.0, the methods *clearBuffer()*, *setColon()*, *writeChar()* and *writeNumber()* return the context object, *this*, allowing them to be chained:
 
 ```squirrel
 // Set the display to :--:--
