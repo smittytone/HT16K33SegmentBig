@@ -1,18 +1,18 @@
 // CONSTANTS
 // HT16K33 registers and HT16K33-specific variables
-const HT16K33_REGISTER_DISPLAY_ON  = "\x81";
-const HT16K33_REGISTER_DISPLAY_OFF = "\x80";
-const HT16K33_REGISTER_SYSTEM_ON   = "\x21";
-const HT16K33_REGISTER_SYSTEM_OFF  = "\x20";
-const HT16K33_DISPLAY_ADDRESS      = "\x00";
-const HT16K33_I2C_ADDRESS = 0x70;
-const HT16K33_BLANK_CHAR = 16;
-const HT16K33_MINUS_CHAR = 17;
-const HT16K33_CHAR_COUNT = 17;
+const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON  = "\x81";
+const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF = "\x80";
+const HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON   = "\x21";
+const HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF  = "\x20";
+const HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS      = "\x00";
+const HT16K33_BIG_SEG_CLASS_I2C_ADDRESS          = 0x70;
+const HT16K33_BIG_SEG_CLASS_BLANK_CHAR           = 16;
+const HT16K33_BIG_SEG_CLASS_MINUS_CHAR           = 17;
+const HT16K33_BIG_SEG_CLASS_CHAR_COUNT           = 17;
 
 // Display specific constants
-const LED_MAX_ROWS = 4;
-const LED_COLON_ROW = 2;
+const HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS         = 4;
+const HT16K33_BIG_SEG_CLASS_LED_COLON_ROW        = 2;
 
 class HT16K33SegmentBig {
     // Hardware driver for Adafruit 1.2-inch 4-digit, 7-segment LED display
@@ -77,7 +77,7 @@ class HT16K33SegmentBig {
     function updateDisplay() {
         // Converts the row-indexed buffer[] values into a single, combined
         // string and writes it to the HT16K33 via I2C
-        local dataString = HT16K33_DISPLAY_ADDRESS;
+        local dataString = HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS;
 
         for (local i = 0 ; i < 5 ; i++) {
             dataString = dataString + _buffer[i].tochar() + "\x00";
@@ -93,8 +93,8 @@ class HT16K33SegmentBig {
 
     function clearBuffer(character = 16) {
         // Fills the buffer with a blank character, or the digits[] character matrix whose index is provided
-        if (character < 0 || character > HT16K33_CHAR_COUNT - 1) {
-            character = HT16K33_BLANK_CHAR;
+        if (character < 0 || character > HT16K33_BIG_SEG_CLASS_CHAR_COUNT - 1) {
+            character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR;
             if (_debug) server.error("HT16K33SegmentBig.clearBuffer() passed out-of-range character value (0-16)");
         }
 
@@ -123,7 +123,7 @@ class HT16K33SegmentBig {
             return this;
         }
 
-        _buffer[LED_COLON_ROW] = colonPattern;
+        _buffer[HT16K33_BIG_SEG_CLASS_LED_COLON_ROW] = colonPattern;
         return this;
     }
 
@@ -155,7 +155,7 @@ class HT16K33SegmentBig {
             return this;
         }
 
-        if (digit < 0 || digit > LED_MAX_ROWS) {
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS) {
             server.error("HT16K33SegmentBig.writeGlyph() passed out-of-range digit number (0-4)");
             return this;
         }
@@ -171,7 +171,7 @@ class HT16K33SegmentBig {
         //   2. The number to be displayed (0 - 15 for '0' - 'F')
         // Returns:
         //   this
-        if (digit < 0 || digit > LED_MAX_ROWS || digit == 2) {
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == 2) {
             server.error("HT16K33SegmentBig.writeNumber() passed out-of-range digit number (0-1, 3-4)");
             return this;
         }
@@ -232,13 +232,13 @@ class HT16K33SegmentBig {
 
     function powerDown() {
         if (_debug) server.log("Powering HT16K33SegmentBig display down");
-        _led.write(_ledAddress, HT16K33_REGISTER_DISPLAY_OFF);
-        _led.write(_ledAddress, HT16K33_REGISTER_SYSTEM_OFF);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF);
     }
 
     function powerUp() {
         if (_debug) server.log("Powering HT16K33SegmentBig display up");
-        _led.write(_ledAddress, HT16K33_REGISTER_SYSTEM_ON);
-        _led.write(_ledAddress, HT16K33_REGISTER_DISPLAY_ON);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON);
     }
 }
