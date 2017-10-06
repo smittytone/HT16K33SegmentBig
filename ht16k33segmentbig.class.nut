@@ -21,7 +21,7 @@ class HT16K33SegmentBig {
     // Written by Tony Smith (smittytone) 2014-17
     // Licence: MIT
 
-    static VERSION = "1.2.0";
+    static VERSION = "1.2.1";
 
     // Class properties; null for those defined in the Constructor
     _buffer = null;
