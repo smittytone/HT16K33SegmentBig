@@ -21,7 +21,7 @@ class HT16K33SegmentBig {
     // Written by Tony Smith (smittytone) 2014-17
     // Licence: MIT
 
-    static VERSION = "1.2.1";
+    static VERSION = "1.2.2";
 
     // Class properties; null for those defined in the Constructor
     _buffer = null;
@@ -29,6 +29,7 @@ class HT16K33SegmentBig {
     _led = null;
     _ledAddress = 0;
     _debug = false;
+    _logger = null;
 
     constructor(i2cBus = null, i2cAddress = 0x70, debug = false) {
         // Parameters:
@@ -42,6 +43,11 @@ class HT16K33SegmentBig {
         _led = i2cBus;
         _ledAddress = i2cAddress << 1;
         _debug = debug;
+
+        // Select logging target, which stored in '_logger', and will be 'seriallog' if 'seriallog.nut'
+        // has been loaded BEFORE HT16K33SegmentBig is instantiated on the device, otherwise it will be
+        // the imp API object 'server'
+        if ("seriallog" in getroottable()) { _logger = seriallog; } else { _logger = server; }
 
         // _buffer stores the character matrix values for each row of the display
         // Including the center colon character:
@@ -95,7 +101,7 @@ class HT16K33SegmentBig {
         // Fills the buffer with a blank character, or the digits[] character matrix whose index is provided
         if (character < 0 || character > HT16K33_BIG_SEG_CLASS_CHAR_COUNT - 1) {
             character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR;
-            if (_debug) server.error("HT16K33SegmentBig.clearBuffer() passed out-of-range character value (0-16)");
+            if (_debug) _logger.error("HT16K33SegmentBig.clearBuffer() passed out-of-range character value (0-16)");
         }
 
         // Put the clear_character into the buffer except row 2 (colon row)
@@ -119,7 +125,7 @@ class HT16K33SegmentBig {
         // Returns:
         //   this
         if (colonPattern < 0 || colonPattern > 0x1E) {
-            server.error("HT16K33SegmentBig.setColon() passed out-of-range colon pattern");
+            _logger.error("HT16K33SegmentBig.setColon() passed out-of-range colon pattern");
             return this;
         }
 
@@ -151,12 +157,12 @@ class HT16K33SegmentBig {
         // Returns:
         //   this
         if (pattern < 0 || pattern > 127) {
-            server.error("HT16K33SegmentBig.writeGlyph() passed out-of-range character value (0-127)");
+            _logger.error("HT16K33SegmentBig.writeGlyph() passed out-of-range character value (0-127)");
             return this;
         }
 
         if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS) {
-            server.error("HT16K33SegmentBig.writeGlyph() passed out-of-range digit number (0-4)");
+            _logger.error("HT16K33SegmentBig.writeGlyph() passed out-of-range digit number (0-4)");
             return this;
         }
 
@@ -172,12 +178,12 @@ class HT16K33SegmentBig {
         // Returns:
         //   this
         if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == 2) {
-            server.error("HT16K33SegmentBig.writeNumber() passed out-of-range digit number (0-1, 3-4)");
+            _logger.error("HT16K33SegmentBig.writeNumber() passed out-of-range digit number (0-1, 3-4)");
             return this;
         }
 
         if (number < 0x00 || number > 0x0F) {
-            server.error("HT16K33SegmentBig.writeNumber() passed out-of-range number value (0x00-0x0F)");
+            _logger.error("HT16K33SegmentBig.writeNumber() passed out-of-range number value (0x00-0x0F)");
             return this;
         }
 
@@ -190,16 +196,16 @@ class HT16K33SegmentBig {
         // Parameters:
         //   1. Integer specifying the brightness (0 - 15; default 15)
         if (brightness > 15) {
-            if (_debug) server.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
+            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
             brightness = 15;
         }
 
         if (brightness < 0) {
-            if (_debug) server.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
+            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
             brightness = 0;
         }
 
-        if (_debug) server.log("Setting brightness to " + brightness);
+        if (_debug) _logger.log("Setting brightness to " + brightness);
         brightness = brightness + 224;
 
         // Write the new brightness value to the HT16K33
@@ -221,23 +227,23 @@ class HT16K33SegmentBig {
         }
 
         if (match == -1) {
-            server.error("HT16K33SegmentBig.setDisplayFlash() passed an invalid blink frequency");
+            _logger.error("HT16K33SegmentBig.setDisplayFlash() passed an invalid blink frequency");
             return this;
         }
 
         match = 0x81 + (match << 1);
         _led.write(_ledAddress, match.tochar() + "\x00");
-        if (_debug) server.log(format("Display flash set to %d Hz", ((match - 0x81) >> 1)));
+        if (_debug) _logger.log(format("Display flash set to %d Hz", ((match - 0x81) >> 1)));
     }
 
     function powerDown() {
-        if (_debug) server.log("Powering HT16K33SegmentBig display down");
+        if (_debug) _logger.log("Powering HT16K33SegmentBig display down");
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF);
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF);
     }
 
     function powerUp() {
-        if (_debug) server.log("Powering HT16K33SegmentBig display up");
+        if (_debug) _logger.log("Powering HT16K33SegmentBig display up");
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON);
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON);
     }
