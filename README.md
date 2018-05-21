@@ -15,6 +15,7 @@ The class incorporates its own (limited) character set, accessed through the fol
 
 - 1.2.2
     - Add support for [`seriallog.nut`](https://github.com/smittytone/generic/blob/master/seriallog.nut) to enable serial logging if the application makes use of it
+        - **Note** Class will log to *server.log()* if *seriallog* is not present
 - 1.2.1
     - Minor code change: rename constants to be class-specific
 - 1.2.0
