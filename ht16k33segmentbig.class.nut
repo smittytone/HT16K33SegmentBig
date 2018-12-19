@@ -1,5 +1,5 @@
 // CONSTANTS
-// HT16K33 registers and HT16K33-specific variables
+// HT16K33 registers and HT16K33-specific constants
 const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON  = "\x81";
 const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF = "\x80";
 const HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON   = "\x21";
@@ -8,11 +8,13 @@ const HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS      = "\x00";
 const HT16K33_BIG_SEG_CLASS_I2C_ADDRESS          = 0x70;
 const HT16K33_BIG_SEG_CLASS_BLANK_CHAR           = 16;
 const HT16K33_BIG_SEG_CLASS_MINUS_CHAR           = 17;
-const HT16K33_BIG_SEG_CLASS_CHAR_COUNT           = 17;
+const HT16K33_BIG_SEG_CLASS_DEGREE_CHAR          = 18;
+const HT16K33_BIG_SEG_CLASS_CHAR_COUNT           = 19;
 
 // Display specific constants
 const HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS         = 4;
 const HT16K33_BIG_SEG_CLASS_LED_COLON_ROW        = 2;
+
 
 class HT16K33SegmentBig {
     // Hardware driver for Adafruit 1.2-inch 4-digit, 7-segment LED display
@@ -21,7 +23,7 @@ class HT16K33SegmentBig {
     // Written by Tony Smith (smittytone) 2014-18
     // Licence: MIT
 
-    static VERSION = "1.2.2";
+    static VERSION = "1.4.0";
 
     // Class properties; null for those defined in the Constructor
     _buffer = null;
@@ -42,6 +44,8 @@ class HT16K33SegmentBig {
 
         _led = i2cBus;
         _ledAddress = i2cAddress << 1;
+        
+        if (typeof debug != "bool") debug = false;
         _debug = debug;
 
         // Select logging target, which stored in '_logger', and will be 'seriallog' if 'seriallog.nut'
@@ -56,64 +60,58 @@ class HT16K33SegmentBig {
         //    [ ]  [ ]     [ ]  [ ]
         //     -    -   .   -    -
         //    [ ]  [ ]  .  [ ]  [ ]
-        _buffer = [0x00, 0x00, 0x00, 0x00, 0x00];
+        _buffer = blob(5);
 
         // _digits store character matrices for 0-9, A-F, blank and minus
-        _digits = [
-            0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F,  // 0 - 9
-            0x5F, 0x7C, 0x58, 0x5E, 0x7B, 0x71,                          // A - F
-            0x00, 0x40                                                   // space, minus sign
-        ];
+        _digits = "\x3F\x06\x5B\x4F\x66\x6D\x7D\x07\x7F\x6F"; // 0-9
+        _digits = _digits + "\x5F\x7C\x58\x5E\x7B\x71";       // A-F
+        _digits = _digits + "\x00\x40\x63";                   // Space, minus, degree signs
     }
 
-    function init(character = 16, brightness = 15) {
+    function init(character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR, brightness = 15, showColon = false) {
         // Parameters:
         //   1. Integer index for the digits[] character matrix to zero the display to
         //   2. Integer value for the initial display brightness, between 0 and 15
+        //   3. Boolean value - should the display's colon be shown?
         // Returns:
-        //   this
+        //   The instance
 
         // Initialise the display
         powerUp();
         setBrightness(brightness);
         clearBuffer(character);
+        setColon(showColon ? 0x02 : 0x00);
         return this;
     }
 
-    function updateDisplay() {
-        // Converts the row-indexed buffer[] values into a single, combined
-        // string and writes it to the HT16K33 via I2C
-        local dataString = HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS;
-
-        for (local i = 0 ; i < 5 ; i++) {
-            dataString = dataString + _buffer[i].tochar() + "\x00";
+    function setBrightness(brightness = 15) {
+        // Set the LED brightness
+        // Parameters:
+        //   1. Integer specifying the brightness (0 - 15; default 15)
+        // Returns:
+        //    Nothing
+        
+        if (typeof brightness != "integer" && typeof brightness != "float") brightness = 15;
+        brightness = brightness.tointeger();
+        
+        if (brightness > 15) {
+            brightness = 15;
+            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() brightness value out of range");
         }
 
-        _led.write(_ledAddress, dataString);
-    }
-
-    function clearDisplay() {
-        // Clears the display buffer and colon and updates the display - all in one
-        clearBuffer().setColon().updateDisplay();
-    }
-
-    function clearBuffer(character = 16) {
-        // Fills the buffer with a blank character, or the digits[] character matrix whose index is provided
-        if (character < 0 || character > HT16K33_BIG_SEG_CLASS_CHAR_COUNT - 1) {
-            character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR;
-            if (_debug) _logger.error("HT16K33SegmentBig.clearBuffer() passed out-of-range character value (0-16)");
+        if (brightness < 0) {
+            brightness = 0;
+            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() brightness value out of range");
         }
 
-        // Put the clear_character into the buffer except row 2 (colon row)
-        _buffer[0] = _digits[character];
-        _buffer[1] = _digits[character];
-        _buffer[3] = _digits[character];
-        _buffer[4] = _digits[character];
+        if (_debug) _logger.log("Brightness set to " + brightness);
+        brightness = brightness + 224;
 
-        return this;
+        // Write the new brightness value to the HT16K33
+        _led.write(_ledAddress, brightness.tochar() + "\x00");
     }
 
-    function setColon(colonPattern = 0) {
+    function setColon(colonPattern = 0x00) {
         // Sets the LED’s colon and decimal point lights
         // Parameter:
         //   1. An integer indicating which elements to light (OR the values required)
@@ -123,21 +121,55 @@ class HT16K33SegmentBig {
         //      0x08 - left colon, upper dot
         //      0x10 - decimal point (upper)
         // Returns:
-        //   this
+        //   The instance
+
+        if (typeof colonPattern != "integer") colonPatter = 0x00;
         if (colonPattern < 0 || colonPattern > 0x1E) {
-            _logger.error("HT16K33SegmentBig.setColon() passed out-of-range colon pattern");
-            return this;
+            _logger.error("HT16K33SegmentBig.setColon() pattern value out of range");
+        } else {
+            _buffer[HT16K33_BIG_SEG_CLASS_LED_COLON_ROW] = colonPattern;
+            if (_debug) _logger.log(format("Colon set to pattern 0x%02X", colonPattern));
         }
 
-        _buffer[HT16K33_BIG_SEG_CLASS_LED_COLON_ROW] = colonPattern;
         return this;
     }
 
-    function writeChar(digit, pattern) {
-        return writeGlyph(digit, pattern);
+    function setDisplayFlash(flashRate = 0) {
+        // Parameters:
+        //    1. Flash rate in Herz. Must be 0.5, 1 or 2 for a flash, or 0 for no flash
+        // Returns:
+        //    Nothing
+
+        local values = [0, 2, 1, 0.5];
+        local match = -1;
+        foreach (i, value in values) {
+            if (value == flashRate) {
+                match = i;
+                break;
+            }
+        }
+
+        if (match == -1) {
+            _logger.error("HT16K33SegmentBig.setDisplayFlash() blink frequency invalid");
+        } else {
+            match = 0x81 + (match << 1);
+            _led.write(_ledAddress, match.tochar() + "\x00");
+            if (_debug) _logger.log(format("Display flash set to %d Hz", ((match - 0x81) >> 1)));
+        }
     }
 
-    function writeGlyph(digit, pattern) {
+    function setDebug(state = true) {
+        // Enable or disable extra debugging information
+        // Parameters:
+        //   1. Whether extra debugging information is shown. Default: true
+        // Returns:
+        //   Nothing
+
+        if (typeof state != "bool") state = true;
+        _debug = state;
+    }
+
+    function writeGlyph(digit, glyphPattern) {
         // Puts the character pattern into the buffer at the specified row.
         // Parameters:
         //   1. Integer specify the digit number from the left (0 - 4)
@@ -155,19 +187,26 @@ class HT16K33SegmentBig {
         //           3
         //
         // Returns:
-        //   this
-        if (pattern < 0 || pattern > 127) {
-            _logger.error("HT16K33SegmentBig.writeGlyph() passed out-of-range character value (0-127)");
+        //   The instance
+
+        if (glyphPattern < 0x00 || glyphPattern > 0x7F) {
+            _logger.error("HT16K33SegmentBig.writeGlyph() glyph pattern value out of range");
             return this;
         }
 
-        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS) {
-            _logger.error("HT16K33SegmentBig.writeGlyph() passed out-of-range digit number (0-4)");
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS_LED_COLON_ROW) {
+            _logger.error("HT16K33SegmentBig.writeGlyph() row value out of range");
             return this;
         }
 
-        _buffer[digit] = pattern;
+        _buffer[digit] = glyphPattern;
+        if (_debug) _logger.log(format("Row %d set to character defined by pattern 0x%02x", digit, glyphPattern));
+
         return this;
+    }
+
+    function writeChar(digit, pattern) {
+        return writeGlyph(digit, pattern);
     }
 
     function writeNumber(digit, number) {
@@ -176,73 +215,79 @@ class HT16K33SegmentBig {
         //   1. The digit number (0 - 4)
         //   2. The number to be displayed (0 - 15 for '0' - 'F')
         // Returns:
-        //   this
-        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == 2) {
-            _logger.error("HT16K33SegmentBig.writeNumber() passed out-of-range digit number (0-1, 3-4)");
+        //   The instance
+
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS_LED_COLON_ROW) {
+            _logger.error("HT16K33SegmentBig.writeNumber() row value out of range");
             return this;
         }
 
         if (number < 0x00 || number > 0x0F) {
-            _logger.error("HT16K33SegmentBig.writeNumber() passed out-of-range number value (0x00-0x0F)");
+            _logger.error("HT16K33SegmentBig.writeNumber() number value out of range");
             return this;
         }
 
         _buffer[digit] = _digits[number];
+        if (_debug) _logger.log(format("Row %d set to integer %d", digit, number));
+        
         return this;
     }
 
-    function setBrightness(brightness = 15) {
-        // Set the LED brightness
+    function clearBuffer(character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR) {
+        // Fills the buffer with a specified character
         // Parameters:
-        //   1. Integer specifying the brightness (0 - 15; default 15)
-        if (brightness > 15) {
-            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
-            brightness = 15;
+        //   1. The index in the charset of the character required (0-18) 
+        // Returns:
+        //   The instance
+        
+        if (character < 0 || character > HT16K33_BIG_SEG_CLASS_CHAR_COUNT - 1) {
+            character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR;
+            _logger.error("HT16K33SegmentBig.clearBuffer() character value out of range)");
         }
 
-        if (brightness < 0) {
-            if (_debug) _logger.log("HT16K33SegmentBig.setBrightness() passed out-of-range brightness value (0-15)");
-            brightness = 0;
-        }
+        // Put 'character' into the buffer except row 2 (colon row)
+        _buffer[0] = _digits[character];
+        _buffer[1] = _digits[character];
+        _buffer[3] = _digits[character];
+        _buffer[4] = _digits[character];
 
-        if (_debug) _logger.log("Setting brightness to " + brightness);
-        brightness = brightness + 224;
-
-        // Write the new brightness value to the HT16K33
-        _led.write(_ledAddress, brightness.tochar() + "\x00");
+        return this;
     }
 
-    function setDisplayFlash(flashRate = 0) {
-        // Parameters:
-        //    1. Flash rate in Herz. Must be 0.5, 1 or 2 for a flash, or 0 for no flash
+    function clearDisplay() {
+        // Convenience method to clear the digits and colon, and update the display - all in one
         // Returns:
-        //    Nothing
-        local values = [0, 2, 1, 0.5];
-        local match = -1;
-        foreach (i, value in values) {
-            if (value == flashRate) {
-                match = i;
-                break;
-            }
-        }
+        //   Nothing
+        
+        clearBuffer().setColon().updateDisplay();
+    }
 
-        if (match == -1) {
-            _logger.error("HT16K33SegmentBig.setDisplayFlash() passed an invalid blink frequency");
-            return this;
-        }
-
-        match = 0x81 + (match << 1);
-        _led.write(_ledAddress, match.tochar() + "\x00");
-        if (_debug) _logger.log(format("Display flash set to %d Hz", ((match - 0x81) >> 1)));
+    function updateDisplay() {
+        // Converts the row-indexed buffer[] values into a single, combined
+        // string and writes it to the HT16K33 via I2C
+        // Returns:
+        //   Nothing
+        
+        local dataString = HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS;
+        for (local i = 0 ; i < 5 ; i++) dataString += _buffer[i].tochar() + "\x00";
+        _led.write(_ledAddress, dataString);
     }
 
     function powerDown() {
+        // Power the LED and HT16K33 down
+        // Returns:
+        //   Nothing
+        
         if (_debug) _logger.log("Powering HT16K33SegmentBig display down");
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF);
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF);
     }
 
     function powerUp() {
+        // Power the LED and HT16K33 up
+        // Returns:
+        //   Nothing
+        
         if (_debug) _logger.log("Powering HT16K33SegmentBig display up");
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON);
         _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON);
