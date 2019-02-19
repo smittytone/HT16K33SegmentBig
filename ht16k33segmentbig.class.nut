@@ -1,31 +1,49 @@
-// CONSTANTS
-// HT16K33 registers and HT16K33-specific constants
-const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON  = "\x81";
-const HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF = "\x80";
-const HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON   = "\x21";
-const HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF  = "\x20";
-const HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS      = "\x00";
-const HT16K33_BIG_SEG_CLASS_I2C_ADDRESS          = 0x70;
-const HT16K33_BIG_SEG_CLASS_BLANK_CHAR           = 16;
-const HT16K33_BIG_SEG_CLASS_MINUS_CHAR           = 17;
-const HT16K33_BIG_SEG_CLASS_DEGREE_CHAR          = 18;
-const HT16K33_BIG_SEG_CLASS_CHAR_COUNT           = 19;
+/**
+ * HT16K33 registers and HT16K33-specific variables
+ * 
+ * @enum
+ *
+ */ 
+enum  HT16K33_BIG_SEG_CLASS {
+        // Command registers
+        REGISTER_DISPLAY_ON  = "\x81",
+        REGISTER_DISPLAY_OFF = "\x80",
+        REGISTER_SYSTEM_ON   = "\x21",
+        REGISTER_SYSTEM_OFF  = "\x20",
+        // Display hardware settings
+        DISPLAY_ADDRESS      = "\x00",
+        I2C_ADDRESS          = 0x70,
+        // Character constants
+        BLANK_CHAR           = 16,
+        MINUS_CHAR           = 17,
+        DEGREE_CHAR          = 18,
+        CHAR_COUNT           = 19,
+        // Display specific constants
+        LED_MAX_ROWS         = 4,
+        LED_COLON_ROW        = 2
+}
 
-// Display specific constants
-const HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS         = 4;
-const HT16K33_BIG_SEG_CLASS_LED_COLON_ROW        = 2;
-
-
+/**
+ * Hardware driver for Adafruit 1.2-inch 4-digit, 7-segment LED display based on the Holtek HT16K33 controller.
+ * For example: http://www.adafruit.com/products/1854
+ *
+ * Bus          I2C
+ * Availibility Device
+ * @author      Tony Smith (@smittytone)
+ * @license     MIT
+ *
+ * @class
+ */
 class HT16K33SegmentBig {
-    // Hardware driver for Adafruit 1.2-inch 4-digit, 7-segment LED display
-    // based on the Holtek HT16K33 controller.
-    // The LED communicates over any imp I2C bus.
-    // Written by Tony Smith (smittytone) 2014-18
-    // Licence: MIT
-
+    
+    /**
+     * @property {string} VERSION - The library version
+     * 
+     */    
     static VERSION = "1.4.0";
 
-    // Class properties; null for those defined in the Constructor
+    // *********** Private Properties **********
+
     _buffer = null;
     _digits = null;
     _led = null;
@@ -33,12 +51,18 @@ class HT16K33SegmentBig {
     _debug = false;
     _logger = null;
 
-    constructor(i2cBus = null, i2cAddress = 0x70, debug = false) {
-        // Parameters:
-        //   1. A CONFIGURED imp I2C bus is to be used for the HT16K33
-        //   2. The HT16K33's 7-bit I2C address (default: 0x70)
-        //   3. Boolean to invoke extra debug log information (default: false)
-
+    /**
+     *  Initialize the segment LED
+     *
+     *  @constructor
+     *
+     *  @param {imp::i2c} impI2Cbus    - Whichever configured imp I2C bus is to be used for the HT16K33
+     *  @param {integer}  [i2cAddress] - The HT16K33's I2C address. Default: 0x70
+     *  @param {bool}     [debug ]     - Set/unset to log/silence extra debug messages. Default: false
+     *  
+     *  @returns {instance} The instance
+     */
+    constructor(i2cBus = null, i2cAddress = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS, debug = false) {
         if (i2cBus == null || i2cAddress == 0) throw "HT16K33SegmentBig() requires a valid imp I2C object and non-zero I2C address";
         if (i2cAddress < 0x00 || i2cAddress > 0xFF) throw "HT16K33SegmentBig() requires a valid I2C address";
 
@@ -68,14 +92,16 @@ class HT16K33SegmentBig {
         _digits = _digits + "\x00\x40\x63";                   // Space, minus, degree signs
     }
 
-    function init(character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR, brightness = 15, showColon = false) {
-        // Parameters:
-        //   1. Integer index for the digits[] character matrix to zero the display to
-        //   2. Integer value for the initial display brightness, between 0 and 15
-        //   3. Boolean value - should the display's colon be shown?
-        // Returns:
-        //   The instance
-
+    /**
+     *  Initialize the segment LED display
+     *
+     *  @param {integer} [character]  - A character to display on every segment. Default: clear space
+     *  @param {integer} [brightness] - The LED brightness in range 0 to 15. Default: 15
+     *  @param {bool}    [showColon]  - Whether the central colon should be lit. Default: false
+     *
+     *  @returns {intance} this  
+     */
+    function init(character = HT16K33_BIG_SEG_CLASS.BLANK_CHAR, brightness = 15, showColon = false) {
         // Initialise the display
         powerUp();
         setBrightness(brightness);
@@ -84,13 +110,13 @@ class HT16K33SegmentBig {
         return this;
     }
 
+    /**
+     *  Set the segment LED display brightness
+     *
+     *  @param {integer} [brightness] - The LED brightness in range 0 to 15. Default: 15
+     * 
+     */
     function setBrightness(brightness = 15) {
-        // Set the LED brightness
-        // Parameters:
-        //   1. Integer specifying the brightness (0 - 15; default 15)
-        // Returns:
-        //    Nothing
-        
         if (typeof brightness != "integer" && typeof brightness != "float") brightness = 15;
         brightness = brightness.tointeger();
         
@@ -111,35 +137,37 @@ class HT16K33SegmentBig {
         _led.write(_ledAddress, brightness.tochar() + "\x00");
     }
 
+    /**
+     *  Set or unset the segment LED display's colon and decimal point lights
+     *
+     *  @param {integer} [colonPattern] - An integer indicating which elements to light (OR the values required). Default: 0x00
+     *                                    0x00: no colon
+     *                                    0x02: centre colon
+     *                                    0x04: left colon, lower dot
+     *                                    0x08: left colon, upper dot
+     *                                    0x10: decimal point (upper)
+     *
+     *  @returns {intance} this  
+     */
     function setColon(colonPattern = 0x00) {
-        // Sets the LED’s colon and decimal point lights
-        // Parameter:
-        //   1. An integer indicating which elements to light (OR the values required)
-        //      0x00 - no colon
-        //      0x02 - centre colon
-        //      0x04 - left colon, lower dot
-        //      0x08 - left colon, upper dot
-        //      0x10 - decimal point (upper)
-        // Returns:
-        //   The instance
-
         if (typeof colonPattern != "integer") colonPatter = 0x00;
         if (colonPattern < 0 || colonPattern > 0x1E) {
             _logger.error("HT16K33SegmentBig.setColon() pattern value out of range");
         } else {
-            _buffer[HT16K33_BIG_SEG_CLASS_LED_COLON_ROW] = colonPattern;
+            _buffer[HT16K33_BIG_SEG_CLASS.LED_COLON_ROW] = colonPattern;
             if (_debug) _logger.log(format("Colon set to pattern 0x%02X", colonPattern));
         }
 
         return this;
     }
 
+    /**
+     *  Set the segment LED to flash at one of three pre-defined rates
+     *
+     *  @param {integer} [flashRate] - Flash rate in Herz. Must be 0.5, 1 or 2 for a flash, or 0 for no flash. Default: 0
+     * 
+     */
     function setDisplayFlash(flashRate = 0) {
-        // Parameters:
-        //    1. Flash rate in Herz. Must be 0.5, 1 or 2 for a flash, or 0 for no flash
-        // Returns:
-        //    Nothing
-
         local values = [0, 2, 1, 0.5];
         local match = -1;
         foreach (i, value in values) {
@@ -158,43 +186,35 @@ class HT16K33SegmentBig {
         }
     }
 
-    function setDebug(state = true) {
-        // Enable or disable extra debugging information
-        // Parameters:
-        //   1. Whether extra debugging information is shown. Default: true
-        // Returns:
-        //   Nothing
-
-        if (typeof state != "bool") state = true;
-        _debug = state;
-    }
-
+    /**
+     *  Set the specified segment LED buffer row to a given numeric character, with a decimal point if required
+     *
+     *  Character matrix value is calculated by setting the bit(s) representing the segment(s) you want illuminated.
+     *  Bit-to-segment mapping runs clockwise from the top around the outside of the matrix; the inner segment is bit 6:
+     *
+     *         0
+     *         _
+     *     5 |   | 1
+     *       |   |
+     *         - <----- 6
+     *     4 |   | 2
+     *       | _ |
+     *         3
+     * 
+     *
+     *  @param {integer} [digit]        - The display digit to be written to (0 - 4)
+     *  @param {integer} [glyphPattern] - The integer index value of the character required
+     *
+     *  @returns {intance} this
+     *
+     */
     function writeGlyph(digit, glyphPattern) {
-        // Puts the character pattern into the buffer at the specified row.
-        // Parameters:
-        //   1. Integer specify the digit number from the left (0 - 4)
-        //   2. Integer bit pattern that defines the character
-        //      Bit-to-segment mapping runs clockwise from the top around the
-        //      outside of the matrix; the inner segment is bit 6:
-        //
-        //           0
-        //           _
-        //       5 |   | 1
-        //         |   |
-        //           - <----- 6
-        //       4 |   | 2
-        //         | _ |
-        //           3
-        //
-        // Returns:
-        //   The instance
-
         if (glyphPattern < 0x00 || glyphPattern > 0x7F) {
             _logger.error("HT16K33SegmentBig.writeGlyph() glyph pattern value out of range");
             return this;
         }
 
-        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS_LED_COLON_ROW) {
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS.LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS.LED_COLON_ROW) {
             _logger.error("HT16K33SegmentBig.writeGlyph() row value out of range");
             return this;
         }
@@ -209,15 +229,17 @@ class HT16K33SegmentBig {
         return writeGlyph(digit, pattern);
     }
 
+    /**
+     *  Set the specified segment LED buffer row to a given character
+     *
+     *  @param {integer} [digit]  - The display digit to be written to (0 - 4)
+     *  @param {integer} [number] - The integer required (0 - 16, 0-F)
+     *
+     *  @returns {intance} this
+     *
+     */
     function writeNumber(digit, number) {
-        // Sets the specified digit to the number
-        // Parameters:
-        //   1. The digit number (0 - 4)
-        //   2. The number to be displayed (0 - 15 for '0' - 'F')
-        // Returns:
-        //   The instance
-
-        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS_LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS_LED_COLON_ROW) {
+        if (digit < 0 || digit > HT16K33_BIG_SEG_CLASS.LED_MAX_ROWS || digit == HT16K33_BIG_SEG_CLASS.LED_COLON_ROW) {
             _logger.error("HT16K33SegmentBig.writeNumber() row value out of range");
             return this;
         }
@@ -233,15 +255,17 @@ class HT16K33SegmentBig {
         return this;
     }
 
-    function clearBuffer(character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR) {
-        // Fills the buffer with a specified character
-        // Parameters:
-        //   1. The index in the charset of the character required (0-18) 
-        // Returns:
-        //   The instance
-        
-        if (character < 0 || character > HT16K33_BIG_SEG_CLASS_CHAR_COUNT - 1) {
-            character = HT16K33_BIG_SEG_CLASS_BLANK_CHAR;
+    /**
+     *  Set each row in the segment LED buffer to a specific character
+     *
+     *  @param {integer} [character] - The character to display on every segment. Default: clear space
+     *
+     *  @returns {intance} this
+     *
+     */
+    function clearBuffer(character = HT16K33_BIG_SEG_CLASS.BLANK_CHAR) {
+        if (character < 0 || character > HT16K33_BIG_SEG_CLASS.CHAR_COUNT - 1) {
+            character = HT16K33_BIG_SEG_CLASS.BLANK_CHAR;
             _logger.error("HT16K33SegmentBig.clearBuffer() character value out of range)");
         }
 
@@ -254,42 +278,52 @@ class HT16K33SegmentBig {
         return this;
     }
 
+    /**
+     *  Set each row in the segment LED buffer to a specific character and update the display
+     *
+     */
     function clearDisplay() {
-        // Convenience method to clear the digits and colon, and update the display - all in one
-        // Returns:
-        //   Nothing
-        
         clearBuffer().setColon().updateDisplay();
     }
 
+    /**
+     *  Write the segment LED buffer out to the display itself
+     *
+     */
     function updateDisplay() {
-        // Converts the row-indexed buffer[] values into a single, combined
-        // string and writes it to the HT16K33 via I2C
-        // Returns:
-        //   Nothing
-        
-        local dataString = HT16K33_BIG_SEG_CLASS_DISPLAY_ADDRESS;
+        local dataString = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS;
         for (local i = 0 ; i < 5 ; i++) dataString += _buffer[i].tochar() + "\x00";
         _led.write(_ledAddress, dataString);
     }
 
+    /**
+     *  Turn the segment LED display off
+     * 
+     */
     function powerDown() {
-        // Power the LED and HT16K33 down
-        // Returns:
-        //   Nothing
-        
         if (_debug) _logger.log("Powering HT16K33SegmentBig display down");
-        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_OFF);
-        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_OFF);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS.REGISTER_DISPLAY_OFF);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS.REGISTER_SYSTEM_OFF);
     }
 
+    /**
+     *  Turn the segment LED display on
+     * 
+     */
     function powerUp() {
-        // Power the LED and HT16K33 up
-        // Returns:
-        //   Nothing
-        
         if (_debug) _logger.log("Powering HT16K33SegmentBig display up");
-        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_SYSTEM_ON);
-        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS_REGISTER_DISPLAY_ON);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS.REGISTER_SYSTEM_ON);
+        _led.write(_ledAddress, HT16K33_BIG_SEG_CLASS.REGISTER_DISPLAY_ON);
+    }
+
+    /**
+     *  Set the segment LED display to log extra debug info
+     *
+     *  @param {bool} [state] - Whether extra debugging is enabled (true) or not (false). Default: true
+     *  
+     */
+    function setDebug(state = true) {
+        if (typeof state != "bool") state = true;
+        _debug = state;
     }
 }
