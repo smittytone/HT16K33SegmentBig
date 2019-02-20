@@ -33,6 +33,7 @@ enum  HT16K33_BIG_SEG_CLASS {
  * @license     MIT
  *
  * @class
+ *
  */
 class HT16K33SegmentBig {
     
@@ -60,7 +61,8 @@ class HT16K33SegmentBig {
      *  @param {integer}  [i2cAddress] - The HT16K33's I2C address. Default: 0x70
      *  @param {bool}     [debug ]     - Set/unset to log/silence extra debug messages. Default: false
      *  
-     *  @returns {instance} The instance
+     *  @returns {instance} this
+     *
      */
     constructor(i2cBus = null, i2cAddress = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS, debug = false) {
         if (i2cBus == null || i2cAddress == 0) throw "HT16K33SegmentBig() requires a valid imp I2C object and non-zero I2C address";
@@ -75,7 +77,7 @@ class HT16K33SegmentBig {
         // Select logging target, which stored in '_logger', and will be 'seriallog' if 'seriallog.nut'
         // has been loaded BEFORE HT16K33SegmentBig is instantiated on the device, otherwise it will be
         // the imp API object 'server'
-        if ("seriallog" in getroottable()) { _logger = seriallog; } else { _logger = server; }
+        _logger = "seriallog" in getroottable() ? seriallog : server;
 
         // _buffer stores the character matrix values for each row of the display
         // Including the center colon character:
@@ -99,7 +101,8 @@ class HT16K33SegmentBig {
      *  @param {integer} [brightness] - The LED brightness in range 0 to 15. Default: 15
      *  @param {bool}    [showColon]  - Whether the central colon should be lit. Default: false
      *
-     *  @returns {intance} this  
+     *  @returns {intance} this
+     * 
      */
     function init(character = HT16K33_BIG_SEG_CLASS.BLANK_CHAR, brightness = 15, showColon = false) {
         // Initialise the display
@@ -147,7 +150,8 @@ class HT16K33SegmentBig {
      *                                    0x08: left colon, upper dot
      *                                    0x10: decimal point (upper)
      *
-     *  @returns {intance} this  
+     *  @returns {intance} this
+     *
      */
     function setColon(colonPattern = 0x00) {
         if (typeof colonPattern != "integer") colonPatter = 0x00;
