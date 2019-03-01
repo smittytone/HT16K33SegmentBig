@@ -150,7 +150,7 @@ The display can be turned on by calling *powerup()*.
 
 ## Release Notes ##
 
-- 2.0.0 &mdash; *Unreleased*
+- 2.0.0 &mdash; *01 March 2019*
     - Namespace constants using an enum **breaking change**
 - 1.4.0 &mdash; *19 December 2018*
     - Re-organize code and sync with [HT16K33Segment](https://github.com/smittytone/HT16K33Segment)
