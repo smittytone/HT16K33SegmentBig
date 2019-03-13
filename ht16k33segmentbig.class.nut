@@ -41,7 +41,7 @@ class HT16K33SegmentBig {
      * @property {string} VERSION - The library version
      * 
      */    
-    static VERSION = "2.0.0";
+    static VERSION = "2.0.1";
 
     // *********** Private Properties **********
 
@@ -296,8 +296,9 @@ class HT16K33SegmentBig {
      */
     function updateDisplay() {
         local dataString = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS;
-        for (local i = 0 ; i < 5 ; i++) dataString += _buffer[i].tochar() + "\x00";
-        _led.write(_ledAddress, dataString);
+        for (local i = 0 ; i < 5 ; i++) dataString += (_buffer[i].tochar() + "\x00");
+        local result = _led.write(_ledAddress, dataString);
+        if (result != 0) _logger.error("HT16K33SegmentBig I2C error: " + result);
     }
 
     /**
