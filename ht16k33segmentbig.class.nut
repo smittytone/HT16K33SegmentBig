@@ -298,7 +298,7 @@ class HT16K33SegmentBig {
         local dataString = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS;
         for (local i = 0 ; i < 5 ; i++) dataString += (_buffer[i].tochar() + "\x00");
         local result = _led.write(_ledAddress, dataString);
-        if (result != 0) _logger.error("HT16K33SegmentBig I2C error: " + result);
+        if (result != 0) _logger.error("HT16K33SegmentBig I2C error: " + _i2cerr(result));
     }
 
     /**
@@ -330,5 +330,35 @@ class HT16K33SegmentBig {
     function setDebug(state = true) {
         if (typeof state != "bool") state = true;
         _debug = state;
+    }
+
+    /**
+     *  Get an I2C error string
+     *
+     *  @param {int} code — The error code
+     *
+     *  @returns {string} The error message
+     *
+     *  @private
+     *
+     */
+    function _i2cerr(code) {
+        local errors = [
+            "MASTER_SELECT_ERROR", 
+            "TRANSMIT_SELECT_ERROR",
+            "TRANSMIT_ERROR",
+            "BTF_ERROR",
+            "STOP_ERROR",
+            "ADDR_CLEAR_ERROR",
+            "ADDR_RXNE_ERROR",
+            "DATA_RXNE_ERROR",
+            "SLAVE_NACKED_ERROR",
+            "MASTER_RECEIVE_SELECT_ERROR",
+            "RECEIVE_ERROR",
+            "RESELECT_ERROR",
+            "NOT_ENABLED" ];
+        code = 0 - code;
+        if (err >= 1 && err <= 13) return errors[code];
+        return format("UNKNOWN (%d)", code);
     }
 }
