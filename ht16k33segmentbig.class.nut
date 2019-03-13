@@ -41,7 +41,7 @@ class HT16K33SegmentBig {
      * @property {string} VERSION - The library version
      * 
      */    
-    static VERSION = "1.4.0";
+    static VERSION = "2.0.0";
 
     // *********** Private Properties **********
 
