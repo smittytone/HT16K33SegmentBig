@@ -298,7 +298,13 @@ class HT16K33SegmentBig {
         local dataString = HT16K33_BIG_SEG_CLASS.DISPLAY_ADDRESS;
         for (local i = 0 ; i < 5 ; i++) dataString += (_buffer[i].tochar() + "\x00");
         local result = _led.write(_ledAddress, dataString);
-        if (result != 0) _logger.error("HT16K33SegmentBig I2C error: " + _i2cerr(result));
+        if (result != 0) {
+            _logger.error("HT16K33SegmentBig I2C error: " + _i2cerr(result));
+            powerDown();
+            imp.wakeup(1, function() { 
+                powerUp();
+            });
+        }
     }
 
     /**
