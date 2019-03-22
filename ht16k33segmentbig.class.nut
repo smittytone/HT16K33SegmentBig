@@ -303,7 +303,7 @@ class HT16K33SegmentBig {
             powerDown();
             imp.wakeup(1, function() { 
                 powerUp();
-            });
+            }.bindenv(this));
         }
     }
 
